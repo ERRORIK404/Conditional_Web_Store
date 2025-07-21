@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+      API_PORT: ${API_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - marketplace-net
+
+  db:
+    image: postgres:16-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} pg_isready -h ${POSTGRES_HOST} -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/16/data
+    networks:
+      - marketplace-net
+
+volumes:
+  db-data:
+
+networks:
+  marketplace-net:
+    driver: bridge
