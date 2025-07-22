@@ -7,8 +7,7 @@ import (
 	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/logger"
 	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/models"
 	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/repository"
-
-	"time"
+	"go.uber.org/zap"
 
 	"github.com/google/uuid"
 )
@@ -28,9 +27,11 @@ func (s *AuthService) Register(login, password string) (*models.User, error) {
 	// Проверка существования пользователя
 	existing, err := s.userRepo.GetByLogin(login)
 	if err != nil {
+		logger.Logger.Error("users_auth_service.Register", zap.Error(err))
 		return nil, err
 	}
 	if existing != nil {
+		logger.Logger.Error("users_auth_service.Register user already exists", zap.Any("id", existing.ID), zap.String("login", existing.Login))
 		return nil, errors.New("user already exists")
 	}
 
@@ -41,18 +42,19 @@ func (s *AuthService) Register(login, password string) (*models.User, error) {
 	}
 
 	// Создание пользователя
-	newUser := &models.User{
-		ID:             &uuid.UUID{},
+	newUser := models.User{
+		ID:             uuid.Nil,
 		Login:          login,
 		HashedPassword: string(hashedPassword),
-		CreatedAt:      time.Now(),
 	}
 	id, err := s.userRepo.Create(newUser)
 	if err != nil {
 		return nil, err
 	}
 	newUser.ID = id
-	return newUser, nil
+
+	logger.Logger.Debug("new user on level service", zap.Any("id", id), zap.String("login", login))
+	return &newUser, nil
 }
 
 // Login проверяет учетные данные и генерирует JWT токен
@@ -62,13 +64,13 @@ func (s *AuthService) Login(login, password string) (string, error) {
 		return "", err
 	}
 	if user == nil {
-		logger.Logger.Error("user not found")
+		logger.Logger.Error("users_auth_service.Login user not found")
 		return "", errors.New("user not found")
 	}
 
 	// Проверка пароля
 	if isCorrect := hashing.IsCorrectPassword(user.HashedPassword, password); !isCorrect {
-		logger.Logger.Error("invalid password")
+		logger.Logger.Error("users_auth_service.Login invalid password")
 		return "", errors.New("invalid credentials")
 	}
 
@@ -78,5 +80,6 @@ func (s *AuthService) Login(login, password string) (string, error) {
 		return "", err
 	}
 
+	logger.Logger.Debug("users_auth_service.Login user login with jwt", zap.String("token", token), zap.String("login", login))
 	return token, nil
 }

@@ -3,14 +3,16 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/logger"
 	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/models"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"strings"
 )
 
 type ProductCardRepository interface {
-	Create(ad *models.ProductCard) (uuid.UUID, error)
+	Create(productCard models.ProductCard) (uuid.UUID, error)
 	GetByID(id uuid.UUID) (*models.ProductCard, error)
 	ListProductCard(
 		currentUserID uuid.UUID,
@@ -28,32 +30,30 @@ func NewProductCardRepository(db *gorm.DB) ProductCardRepository {
 	return &productCardRepository{db: db}
 }
 
-type ProductCardFilters struct {
-	MinPrice, MaxPrice   float64
-	CurrentUserID        uuid.UUID
-	SortField, SortOrder string
-}
-
-func NewProductCardFilters() ProductCardFilters {
-	return ProductCardFilters{MinPrice: -1, MaxPrice: -1, CurrentUserID: uuid.Nil}
-}
-
-func (r *productCardRepository) Create(newcard *models.ProductCard) (uuid.UUID, error) {
-	err := r.db.Create(newcard).Error
+func (r *productCardRepository) Create(productCard models.ProductCard) (uuid.UUID, error) {
+	err := r.db.Create(productCard).Error
 	if err != nil {
+		logger.Logger.Error("productCardRepository.Create", zap.Error(err))
 		return uuid.Nil, err
 	}
-	return newcard.ID, nil
+
+	logger.Logger.Debug("Product Card Created", zap.Any("productCard", productCard))
+	return productCard.ID, nil
 }
 
 func (r *productCardRepository) GetByID(id uuid.UUID) (*models.ProductCard, error) {
 	var pc models.ProductCard
+
 	if err := r.db.First(&pc, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("Card not found")
+			logger.Logger.Error("productCardRepository.GetByID(NOT FOUND)", zap.Error(err))
+			return nil, err
 		}
+		logger.Logger.Error("productCardRepository.GetByID", zap.Error(err))
 		return nil, err
 	}
+
+	logger.Logger.Debug("Product Card Retrieved", zap.Any("pc", pc))
 	return &pc, nil
 }
 
@@ -117,9 +117,11 @@ func (r *productCardRepository) ListProductCard(
 	// Выполняем запрос
 	var results []models.ProductCard
 	if err := query.Scan(&results).Error; err != nil {
+		logger.Logger.Error("productCardRepository.ListProductCard (at the place where the request was executed)", zap.Error(err))
 		return nil, fmt.Errorf("failed to list product cards: %w", err)
 	}
 
+	logger.Logger.Debug("Product Card List", zap.Any("results", results))
 	return results, nil
 }
 

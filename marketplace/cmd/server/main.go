@@ -10,7 +10,7 @@ import (
 
 func main() {
 	logger.InitLogger(false)
-	_, err := config.LoadConfig()
+	conf, err := config.LoadConfig()
 	if err != nil {
 		logger.Logger.Error("Error loading config", zap.Error(err))
 		return
@@ -24,6 +24,8 @@ func main() {
 		logger.Logger.Error("Error loading JWT secret", zap.Error(err))
 		return
 	}
-	local_jwt.LoadJWT(jwtSecret.secret)
+	localjwt.LoadJWT(jwtSecret.secret)
 
+	logger.Logger.Info("test build ",
+		zap.Any("config", conf))
 }
