@@ -1,8 +1,10 @@
 package main
 
 import (
+	"time"
+
 	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/config"
-	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/localJWT"
+	localjwt "github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/localJWT"
 	"github.com/ERRORIK404/Conditional_Web_Store/marketplace/internal/logger"
 	"github.com/caarlos0/env/v11"
 	"go.uber.org/zap"
@@ -10,7 +12,7 @@ import (
 
 func main() {
 	logger.InitLogger(false)
-	conf, err := config.LoadConfig()
+	_, err := config.LoadConfig()
 	if err != nil {
 		logger.Logger.Error("Error loading config", zap.Error(err))
 		return
@@ -26,6 +28,5 @@ func main() {
 	}
 	localjwt.LoadJWT(jwtSecret.secret)
 
-	logger.Logger.Info("test build ",
-		zap.Any("config", conf))
+	time.Sleep(150 * time.Second)
 }
